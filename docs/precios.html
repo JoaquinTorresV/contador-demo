@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Propuesta Comercial — jqsystem</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Georgia', 'Times New Roman', serif;
+      background: #f5f4f0;
+      color: #1a1a1a;
+      min-height: 100vh;
+    }
+
+    /* Page wrapper */
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+      background: #ffffff;
+      min-height: 100vh;
+      box-shadow: 0 0 60px rgba(0,0,0,0.08);
+    }
+
+    /* Top bar */
+    .topbar {
+      background: #1a1a2e;
+      padding: 18px 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-mark {
+      width: 30px;
+      height: 30px;
+      background: #6d4aff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, sans-serif;
+      font-weight: 800;
+      font-size: 12px;
+      color: white;
+      letter-spacing: -0.5px;
+    }
+
+    .logo-text {
+      font-family: -apple-system, sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+    }
+
+    .topbar-date {
+      font-family: -apple-system, sans-serif;
+      font-size: 12px;
+      color: #6b7280;
+      letter-spacing: 0.5px;
+    }
+
+    /* Cover */
+    .cover {
+      padding: 64px 56px 52px;
+      border-bottom: 1px solid #e8e6e0;
+    }
+
+    .doc-label {
+      font-family: -apple-system, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #6d4aff;
+      margin-bottom: 20px;
+    }
+
+    .cover h1 {
+      font-size: 38px;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      color: #1a1a2e;
+      margin-bottom: 14px;
+    }
+
+    .cover p {
+      font-size: 16px;
+      color: #6b7280;
+      font-family: -apple-system, sans-serif;
+      line-height: 1.6;
+      max-width: 480px;
+    }
+
+    /* Section */
+    .section {
+      padding: 52px 56px;
+      border-bottom: 1px solid #e8e6e0;
+    }
+
+    .section:last-child { border-bottom: none; }
+
+    .section-label {
+      font-family: -apple-system, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 32px;
+    }
+
+    /* Tiers */
+    .tiers { display: flex; flex-direction: column; gap: 24px; }
+
+    .tier {
+      border: 1px solid #e8e6e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .tier.highlight { border-color: #6d4aff; }
+
+    .tier-header {
+      padding: 24px 32px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 24px;
+      border-bottom: 1px solid #e8e6e0;
+      background: #fafaf8;
+    }
+
+    .tier.highlight .tier-header {
+      background: #f3f0ff;
+      border-bottom-color: #e8e0ff;
+    }
+
+    .tier-number {
+      font-family: -apple-system, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .tier.highlight .tier-number { color: #6d4aff; }
+
+    .tier-name {
+      font-size: 22px;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .tier-desc {
+      font-family: -apple-system, sans-serif;
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .tier-pricing {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: right;
+      min-width: 200px;
+    }
+
+    .price-block { }
+
+    .price-plan-label {
+      font-family: -apple-system, sans-serif;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+
+    .price-main {
+      font-family: -apple-system, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .price-main.accent { color: #6d4aff; }
+
+    .price-sub {
+      font-family: -apple-system, sans-serif;
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .price-divider {
+      width: 100%;
+      height: 1px;
+      background: #e8e6e0;
+    }
+
+    /* Features inside tier */
+    .tier-body {
+      padding: 24px 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px 40px;
+    }
+
+    .feat {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-family: -apple-system, sans-serif;
+      font-size: 13px;
+      color: #374151;
+      line-height: 1.4;
+    }
+
+    .feat-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #6d4aff;
+      flex-shrink: 0;
+      margin-top: 5px;
+    }
+
+    .feat-dot.gray { background: #d1d5db; }
+
+    /* Comparison table */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: -apple-system, sans-serif;
+      font-size: 14px;
+    }
+
+    .compare-table thead tr {
+      border-bottom: 2px solid #1a1a2e;
+    }
+
+    .compare-table th {
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #1a1a2e;
+    }
+
+    .compare-table th:not(:first-child) { text-align: center; }
+
+    .compare-table td {
+      padding: 14px 16px;
+      color: #374151;
+      border-bottom: 1px solid #e8e6e0;
+      vertical-align: top;
+      line-height: 1.4;
+    }
+
+    .compare-table td:not(:first-child) {
+      text-align: center;
+      font-weight: 600;
+      color: #1a1a2e;
+    }
+
+    .compare-table tr:last-child td { border-bottom: none; }
+    .compare-table tr:hover td { background: #fafaf8; }
+
+    .tag-yes {
+      display: inline-block;
+      background: #f0ebff;
+      color: #6d4aff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+
+    .tag-self {
+      display: inline-block;
+      background: #f3f4f6;
+      color: #6b7280;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 4px;
+    }
+
+    /* Notes */
+    .notes {
+      background: #fafaf8;
+      border-left: 3px solid #6d4aff;
+      padding: 20px 24px;
+      border-radius: 0 6px 6px 0;
+    }
+
+    .notes p {
+      font-family: -apple-system, sans-serif;
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.7;
+    }
+
+    .notes p + p { margin-top: 8px; }
+    .notes strong { color: #374151; font-weight: 600; }
+
+    /* Footer */
+    .footer {
+      background: #1a1a2e;
+      padding: 28px 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer p {
+      font-family: -apple-system, sans-serif;
+      font-size: 12px;
+      color: #6b7280;
+    }
+
+    .footer-contact {
+      font-family: -apple-system, sans-serif;
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="logo">
+      <div class="logo-mark">jq</div>
+      <span class="logo-text">jqsystem</span>
+    </div>
+    <span class="topbar-date">Mayo 2026</span>
+  </div>
+
+  <!-- Cover -->
+  <div class="cover">
+    <p class="doc-label">Propuesta Comercial</p>
+    <h1>Sistema de Automatización<br>para Estudios Contables</h1>
+    <p>Solución a medida con bot WhatsApp, panel de gestión y portal para clientes empresa. Configurado según las necesidades de cada estudio.</p>
+  </div>
+
+  <!-- Niveles de funcionalidad -->
+  <div class="section">
+    <p class="section-label">01 — Niveles de funcionalidad</p>
+    <div class="tiers">
+
+      <!-- Básico -->
+      <div class="tier">
+        <div class="tier-header">
+          <div>
+            <p class="tier-number">Nivel 01</p>
+            <p class="tier-name">Básico</p>
+            <p class="tier-desc">Para contador independiente o estudio pequeño. Bot WhatsApp activo con inteligencia artificial y panel de gestión completo.</p>
+          </div>
+          <div class="tier-pricing">
+            <div class="price-block">
+              <p class="price-plan-label">Plan A — Servicio completo</p>
+              <p class="price-main">$500 <span style="font-size:13px;font-weight:400;color:#9ca3af;">+ $80 USD/mes</span></p>
+            </div>
+            <div class="price-divider"></div>
+            <div class="price-block">
+              <p class="price-plan-label">Plan B — Sistema propio</p>
+              <p class="price-main accent">$700 <span style="font-size:13px;font-weight:400;color:#9ca3af;">único</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="tier-body">
+          <div class="feat"><span class="feat-dot"></span>Bot WhatsApp con inteligencia artificial</div>
+          <div class="feat"><span class="feat-dot"></span>Onboarding automático de clientes</div>
+          <div class="feat"><span class="feat-dot"></span>Recepción y registro de documentos</div>
+          <div class="feat"><span class="feat-dot"></span>Consulta de estado de trámites</div>
+          <div class="feat"><span class="feat-dot"></span>Panel web del contador</div>
+          <div class="feat"><span class="feat-dot"></span>Notificaciones automáticas</div>
+          <div class="feat"><span class="feat-dot"></span>Gestión de tickets de potenciales clientes</div>
+          <div class="feat"><span class="feat-dot"></span>Activación/desactivación de módulos</div>
+        </div>
+      </div>
+
+      <!-- Completo -->
+      <div class="tier highlight">
+        <div class="tier-header">
+          <div>
+            <p class="tier-number">Nivel 02</p>
+            <p class="tier-name">Completo</p>
+            <p class="tier-desc">Para estudios con clientes empresa. Incluye todo el nivel Básico más un portal web exclusivo para cada cliente corporativo.</p>
+          </div>
+          <div class="tier-pricing">
+            <div class="price-block">
+              <p class="price-plan-label">Plan A — Servicio completo</p>
+              <p class="price-main">$700 <span style="font-size:13px;font-weight:400;color:#9ca3af;">+ $100 USD/mes</span></p>
+            </div>
+            <div class="price-divider"></div>
+            <div class="price-block">
+              <p class="price-plan-label">Plan B — Sistema propio</p>
+              <p class="price-main accent">$1.000 <span style="font-size:13px;font-weight:400;color:#9ca3af;">único</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="tier-body">
+          <div class="feat"><span class="feat-dot"></span>Todo lo del nivel Básico</div>
+          <div class="feat"><span class="feat-dot"></span>Portal web para clientes empresa</div>
+          <div class="feat"><span class="feat-dot"></span>Vista de procesos activos y etapas</div>
+          <div class="feat"><span class="feat-dot"></span>Subida de documentos desde el portal</div>
+          <div class="feat"><span class="feat-dot"></span>Calendario de vencimientos tributarios</div>
+          <div class="feat"><span class="feat-dot"></span>Biblioteca de documentos entregados</div>
+          <div class="feat"><span class="feat-dot"></span>Historial completo de trámites</div>
+          <div class="feat"><span class="feat-dot"></span>Acceso independiente por empresa</div>
+        </div>
+      </div>
+
+      <!-- Personalizado -->
+      <div class="tier">
+        <div class="tier-header">
+          <div>
+            <p class="tier-number">Nivel 03</p>
+            <p class="tier-name">Personalizado</p>
+            <p class="tier-desc">Para estudios con flujos específicos, integraciones especiales o requerimientos fuera del estándar. Cotización a medida.</p>
+          </div>
+          <div class="tier-pricing">
+            <div class="price-block">
+              <p class="price-plan-label">Plan A — Servicio completo</p>
+              <p class="price-main">$1.200+ <span style="font-size:13px;font-weight:400;color:#9ca3af;">+ $120 USD/mes</span></p>
+            </div>
+            <div class="price-divider"></div>
+            <div class="price-block">
+              <p class="price-plan-label">Plan B — Sistema propio</p>
+              <p class="price-main accent">$1.800+ <span style="font-size:13px;font-weight:400;color:#9ca3af;">único</span></p>
+            </div>
+          </div>
+        </div>
+        <div class="tier-body">
+          <div class="feat"><span class="feat-dot"></span>Todo lo del nivel Completo</div>
+          <div class="feat"><span class="feat-dot"></span>Flujos conversacionales personalizados</div>
+          <div class="feat"><span class="feat-dot"></span>Integraciones con sistemas externos</div>
+          <div class="feat"><span class="feat-dot"></span>Módulos adicionales según necesidad</div>
+          <div class="feat"><span class="feat-dot"></span>Capacitación al equipo incluida</div>
+          <div class="feat"><span class="feat-dot"></span>Soporte prioritario mensual</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Comparación de planes -->
+  <div class="section">
+    <p class="section-label">02 — Comparación de planes</p>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th style="width:40%">Aspecto</th>
+          <th>Plan A — Servicio completo</th>
+          <th>Plan B — Sistema propio</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Construcción e instalación</td>
+          <td><span class="tag-yes">Incluido</span></td>
+          <td><span class="tag-yes">Incluido</span></td>
+        </tr>
+        <tr>
+          <td>Servidor (VPS)</td>
+          <td><span class="tag-yes">Gestionado por jqsystem</span></td>
+          <td><span class="tag-self">A cargo del cliente (~$5–12/mes)</span></td>
+        </tr>
+        <tr>
+          <td>API de inteligencia artificial</td>
+          <td><span class="tag-yes">Incluida en mensualidad</span></td>
+          <td><span class="tag-self">A cargo del cliente (~$5–20/mes)</span></td>
+        </tr>
+        <tr>
+          <td>Actualizaciones y seguridad</td>
+          <td><span class="tag-yes">Mensual incluido</span></td>
+          <td><span class="tag-self">Responsabilidad del cliente</span></td>
+        </tr>
+        <tr>
+          <td>Soporte técnico</td>
+          <td><span class="tag-yes">Continuo</span></td>
+          <td><span class="tag-self">30 días post-entrega</span></td>
+        </tr>
+        <tr>
+          <td>Código fuente</td>
+          <td>No entregado</td>
+          <td><span class="tag-yes">Entregado al cliente</span></td>
+        </tr>
+        <tr>
+          <td>Propiedad de los datos</td>
+          <td>Del cliente, servidor de jqsystem</td>
+          <td><span class="tag-yes">100% del cliente</span></td>
+        </tr>
+        <tr>
+          <td>Mensualidad</td>
+          <td style="font-weight:700;">$80 – $120 USD/mes</td>
+          <td style="color:#6d4aff;font-weight:700;">Sin mensualidad</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Notas -->
+  <div class="section">
+    <p class="section-label">03 — Consideraciones</p>
+    <div class="notes">
+      <p><strong>Precios referenciales.</strong> Cada estudio contable tiene necesidades distintas. Si requiere menos funcionalidades del nivel indicado, el valor puede ajustarse. Si desea agregar o combinar módulos, se cotiza tomando el nivel Completo como base mínima.</p>
+      <p><strong>Configuración personalizada incluida.</strong> El sistema se configura con el nombre del estudio, servicios ofrecidos, precios y flujos de atención específicos. No es una solución genérica.</p>
+      <p><strong>Tiempo de entrega.</strong> Nivel Básico: 2 a 3 semanas. Nivel Completo: 3 a 4 semanas. Nivel Personalizado: según alcance acordado.</p>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <p>jqsystem — Automatización con inteligencia artificial</p>
+    <div class="footer-contact">
+      <p>joaquintorresv2005@gmail.com</p>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

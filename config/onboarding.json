@@ -1,0 +1,43 @@
+{
+  "steps": [
+    {
+      "id": "nombre",
+      "pregunta": "¿Cuál es tu nombre completo?",
+      "tipo": "texto",
+      "requerido": true,
+      "validacion": "min:2"
+    },
+    {
+      "id": "rut",
+      "pregunta": "¿Cuál es tu RUT? (ej: 12.345.678-9)",
+      "tipo": "rut",
+      "requerido": true
+    },
+    {
+      "id": "email",
+      "pregunta": "¿Cuál es tu correo electrónico?",
+      "tipo": "email",
+      "requerido": false
+    },
+    {
+      "id": "es_empresa",
+      "pregunta": "¿Estás consultando para una empresa o de forma personal?",
+      "tipo": "opciones",
+      "opciones": ["Para una empresa", "De forma personal"],
+      "requerido": true
+    },
+    {
+      "id": "nombre_empresa",
+      "pregunta": "¿Cuál es el nombre de la empresa?",
+      "tipo": "texto",
+      "requerido": true,
+      "condicion": { "campo": "es_empresa", "valor": "Para una empresa" }
+    },
+    {
+      "id": "servicio",
+      "pregunta": "¿Qué servicio necesitas?",
+      "tipo": "opciones_servicios",
+      "requerido": true
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "studio": {
+    "name": "Estudio Contable Demo",
+    "phone": "+56912345678"
+  },
+  "services": [
+    {
+      "id": "declaracion_renta",
+      "nombre": "Declaración de Renta",
+      "descripcion": "Declaración anual de impuesto a la renta (Formulario 22)",
+      "precio_tipo": "fijo",
+      "precio": 35000,
+      "moneda": "CLP",
+      "duracion_estimada": "3 a 5 días hábiles"
+    },
+    {
+      "id": "declaracion_iva",
+      "nombre": "Declaración de IVA mensual",
+      "descripcion": "Declaración y pago mensual de IVA (Formulario 29)",
+      "precio_tipo": "fijo",
+      "precio": 25000,
+      "moneda": "CLP",
+      "duracion_estimada": "1 a 2 días hábiles"
+    },
+    {
+      "id": "contabilidad_completa",
+      "nombre": "Contabilidad Completa",
+      "descripcion": "Gestión contable mensual de empresa: libros, declaraciones, asesoría",
+      "precio_tipo": "variable",
+      "precio_desde": 80000,
+      "moneda": "CLP",
+      "duracion_estimada": "Servicio mensual continuo",
+      "preguntas_calificacion": [
+        "¿Cuál es el nombre de tu empresa?",
+        "¿Cuántas facturas o boletas emites aproximadamente al mes?",
+        "¿Tienes trabajadores con contrato?"
+      ]
+    },
+    {
+      "id": "inicio_actividades",
+      "nombre": "Inicio de Actividades",
+      "descripcion": "Trámite de inicio de actividades ante el SII",
+      "precio_tipo": "fijo",
+      "precio": 45000,
+      "moneda": "CLP",
+      "duracion_estimada": "1 a 2 días hábiles"
+    },
+    {
+      "id": "asesoria_tributaria",
+      "nombre": "Asesoría Tributaria",
+      "descripcion": "Consulta y orientación sobre impuestos, multas o situaciones específicas",
+      "precio_tipo": "variable",
+      "precio_desde": 30000,
+      "moneda": "CLP",
+      "duracion_estimada": "A convenir",
+      "preguntas_calificacion": [
+        "¿Qué necesitas resolver específicamente?"
+      ]
+    }
+  ]
+}

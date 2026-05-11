@@ -1,0 +1,33 @@
+{
+  "name": "contador-demo",
+  "version": "1.0.0",
+  "description": "Sistema de automatización para estudios contables — jqsystem",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js",
+    "dev:api": "nodemon api/index.js",
+    "dev:bot": "nodemon bot/index.js",
+    "db:migrate": "node db/migrations/run.js"
+  },
+  "keywords": [],
+  "author": "jqsystem",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.95.1",
+    "@google/generative-ai": "^0.24.1",
+    "@whiskeysockets/baileys": "^7.0.0-rc10",
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.1.1",
+    "node-cron": "^4.2.1",
+    "openai": "^6.37.0",
+    "pg": "^8.20.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}

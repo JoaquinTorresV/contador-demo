@@ -1,0 +1,11 @@
+{
+  "defaults": {
+    "bot_activo": true,
+    "modulos": {
+      "preventa": true,
+      "onboarding": true,
+      "consulta_proceso": true,
+      "notificaciones": true
+    }
+  }
+}

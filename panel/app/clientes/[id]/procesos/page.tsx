@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 type Etapa = {
   id: number; nombre: string; descripcion: string
   estado: string; orden: number; fecha_completado: string | null
+  documentos_requeridos: string[]
 }
 type Proceso = {
   id: number; tipo: string; estado: string
@@ -14,13 +15,49 @@ type Proceso = {
   fecha_inicio: string; fecha_estimada: string | null; fecha_cierre: string | null
   notas: string | null; etapas: Etapa[]
 }
+type EtapaForm = { nombre: string; docs: string[] }
 
 const TIPOS = [
-  { id: 'inicio_actividades',   label: 'Inicio de Actividades',    etapas: ['Revisión de documentos', 'Formulario SII', 'Resolución y certificado'] },
-  { id: 'declaracion_renta',    label: 'Declaración de Renta',      etapas: ['Recopilación de información', 'Elaboración F22', 'Presentación SII'] },
-  { id: 'declaracion_iva',      label: 'Declaración IVA Mensual',   etapas: ['Recopilación de documentos', 'Elaboración F29', 'Presentación SII'] },
-  { id: 'contabilidad_completa', label: 'Contabilidad Completa',    etapas: ['Libros contables', 'Declaraciones mensuales', 'Informe financiero'] },
-  { id: 'asesoria_tributaria',  label: 'Asesoría Tributaria',       etapas: ['Análisis del caso', 'Elaboración informe', 'Presentación al cliente'] },
+  {
+    id: 'inicio_actividades', label: 'Inicio de Actividades',
+    etapas: [
+      { nombre: 'Revisión de documentos', docs: ['Cédula de identidad (ambos lados)', 'Comprobante de domicilio'] },
+      { nombre: 'Formulario SII',         docs: [] },
+      { nombre: 'Resolución y certificado', docs: [] },
+    ],
+  },
+  {
+    id: 'declaracion_renta', label: 'Declaración de Renta',
+    etapas: [
+      { nombre: 'Recopilación de información', docs: ['Certificado de remuneraciones del empleador', 'Resumen previsional AFP', 'Resumen ISAPRE o FONASA'] },
+      { nombre: 'Elaboración F22',  docs: [] },
+      { nombre: 'Presentación SII', docs: [] },
+    ],
+  },
+  {
+    id: 'declaracion_iva', label: 'Declaración IVA Mensual',
+    etapas: [
+      { nombre: 'Recopilación de documentos', docs: ['Facturas de ventas del mes', 'Facturas de compras del mes', 'Boletas emitidas del período'] },
+      { nombre: 'Elaboración F29',  docs: [] },
+      { nombre: 'Presentación SII', docs: [] },
+    ],
+  },
+  {
+    id: 'contabilidad_completa', label: 'Contabilidad Completa',
+    etapas: [
+      { nombre: 'Libros contables',          docs: ['Facturas de ventas', 'Facturas de compras', 'Extractos bancarios del mes'] },
+      { nombre: 'Declaraciones mensuales',   docs: [] },
+      { nombre: 'Informe financiero',        docs: [] },
+    ],
+  },
+  {
+    id: 'asesoria_tributaria', label: 'Asesoría Tributaria',
+    etapas: [
+      { nombre: 'Análisis del caso',         docs: ['Documentos relacionados al caso', 'Notificaciones del SII (si aplica)'] },
+      { nombre: 'Elaboración informe',       docs: [] },
+      { nombre: 'Presentación al cliente',   docs: [] },
+    ],
+  },
 ]
 
 const TIPO_LABEL: Record<string, string> = Object.fromEntries(TIPOS.map(t => [t.id, t.label]))
@@ -37,19 +74,32 @@ function formatFecha(iso: string | null) {
   return new Date(iso).toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
+function defaultEtapas(tipoId: string): EtapaForm[] {
+  const tipo = TIPOS.find(t => t.id === tipoId)
+  return tipo ? tipo.etapas.map(e => ({ nombre: e.nombre, docs: [...e.docs] })) : []
+}
+
 export default function ProcesosPage() {
-  const router       = useRouter()
-  const { id }       = useParams<{ id: string }>()
+  const router   = useRouter()
+  const { id }   = useParams<{ id: string }>()
   const [nombre, setNombre]     = useState('')
   const [procesos, setProcesos] = useState<Proceso[]>([])
   const [loading, setLoading]   = useState(true)
   const [creando, setCreando]   = useState(false)
-  const [form, setForm]         = useState({ tipo: 'inicio_actividades', fecha_estimada: '' })
-  const [guardando, setGuardando] = useState(false)
+  const [tipoForm, setTipoForm]           = useState('inicio_actividades')
+  const [fechaEstimada, setFechaEstimada] = useState('')
+  const [etapasForm, setEtapasForm]       = useState<EtapaForm[]>(() => defaultEtapas('inicio_actividades'))
+  const [docInputs, setDocInputs]         = useState<string[]>([])
+  const [guardando, setGuardando]         = useState(false)
+
   const [avanzando, setAvanzando]     = useState<number | null>(null)
   const [agregandoEn, setAgregandoEn] = useState<number | null>(null)
   const [nuevaEtapa, setNuevaEtapa]   = useState('')
   const [guardandoEtapa, setGuardandoEtapa] = useState(false)
+  const [editandoDocs, setEditandoDocs]     = useState<number | null>(null)
+  const [docsEdit, setDocsEdit]             = useState<string[]>([])
+  const [nuevoDoc, setNuevoDoc]             = useState('')
+  const [guardandoDocs, setGuardandoDocs]   = useState(false)
 
   useEffect(() => {
     if (!localStorage.getItem('token')) { router.push('/login'); return }
@@ -58,30 +108,75 @@ export default function ProcesosPage() {
       api.get(`/api/procesos?cliente_id=${id}`),
     ]).then(([cliente, procs]) => {
       setNombre(cliente.nombre)
-      // Cargar etapas de cada proceso
       return Promise.all(procs.map((p: Proceso) => api.get(`/api/procesos/${p.id}`)))
     }).then(setProcesos)
       .catch(() => router.push('/clientes'))
       .finally(() => setLoading(false))
   }, [id, router])
 
+  function cambiarTipo(nuevoTipo: string) {
+    setTipoForm(nuevoTipo)
+    const etapas = defaultEtapas(nuevoTipo)
+    setEtapasForm(etapas)
+    setDocInputs(etapas.map(() => ''))
+  }
+
+  function abrirFormCrear() {
+    const etapas = defaultEtapas('inicio_actividades')
+    setTipoForm('inicio_actividades')
+    setFechaEstimada('')
+    setEtapasForm(etapas)
+    setDocInputs(etapas.map(() => ''))
+    setCreando(true)
+  }
+
+  function addDocToEtapa(i: number) {
+    const val = docInputs[i]?.trim()
+    if (!val) return
+    setEtapasForm(prev => prev.map((e, idx) => idx === i ? { ...e, docs: [...e.docs, val] } : e))
+    setDocInputs(prev => prev.map((v, idx) => idx === i ? '' : v))
+  }
+
+  function removeDocFromEtapa(etapaIdx: number, docIdx: number) {
+    setEtapasForm(prev => prev.map((e, i) => i === etapaIdx ? { ...e, docs: e.docs.filter((_, j) => j !== docIdx) } : e))
+  }
+
   async function crearProceso() {
-    const tipoConfig = TIPOS.find(t => t.id === form.tipo)!
     setGuardando(true)
     try {
       await api.post('/api/procesos', {
         cliente_id: Number(id),
-        tipo: form.tipo,
-        etapas: tipoConfig.etapas,
-        fecha_estimada: form.fecha_estimada || null,
+        tipo: tipoForm,
+        etapas: etapasForm.map(e => ({ nombre: e.nombre, docs: e.docs })),
+        fecha_estimada: fechaEstimada || null,
       })
       const procs = await api.get(`/api/procesos?cliente_id=${id}`)
       const detalle = await Promise.all(procs.map((p: Proceso) => api.get(`/api/procesos/${p.id}`)))
       setProcesos(detalle)
       setCreando(false)
-      setForm({ tipo: 'inicio_actividades', fecha_estimada: '' })
     } finally {
       setGuardando(false)
+    }
+  }
+
+  function abrirEditDocs(etapa: Etapa) {
+    setDocsEdit(Array.isArray(etapa.documentos_requeridos) ? [...etapa.documentos_requeridos] : [])
+    setNuevoDoc('')
+    setEditandoDocs(etapa.id)
+  }
+
+  async function guardarDocs(procesoId: number, etapaId: number) {
+    setGuardandoDocs(true)
+    try {
+      await api.patch(`/api/procesos/${procesoId}/etapas/${etapaId}/documentos`, {
+        documentos_requeridos: docsEdit,
+      })
+      const procs = await api.get(`/api/procesos?cliente_id=${id}`)
+      const detalle = await Promise.all(procs.map((p: Proceso) => api.get(`/api/procesos/${p.id}`)))
+      setProcesos(detalle)
+      setEditandoDocs(null)
+    } finally {
+      setGuardandoDocs(false)
     }
   }
 
@@ -130,7 +225,7 @@ export default function ProcesosPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold text-gray-900">Procesos de {nombre}</h1>
           {!creando && (
-            <button onClick={() => setCreando(true)}
+            <button onClick={abrirFormCrear}
               className="bg-violet-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-violet-700">
               + Nuevo proceso
             </button>
@@ -139,32 +234,58 @@ export default function ProcesosPage() {
 
         {/* Formulario nuevo proceso */}
         {creando && (
-          <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-4">
+          <div className="bg-white border border-gray-200 rounded-xl p-5 space-y-5">
             <h3 className="text-sm font-semibold text-gray-900">Nuevo proceso</h3>
+
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Tipo de servicio</label>
-              <select value={form.tipo} onChange={e => setForm(f => ({ ...f, tipo: e.target.value }))}
+              <select value={tipoForm} onChange={e => cambiarTipo(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500">
                 {TIPOS.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
             </div>
+
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Fecha estimada de cierre</label>
-              <input type="date" value={form.fecha_estimada}
-                onChange={e => setForm(f => ({ ...f, fecha_estimada: e.target.value }))}
+              <input type="date" value={fechaEstimada} onChange={e => setFechaEstimada(e.target.value)}
                 className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
             </div>
+
             <div>
-              <label className="text-xs text-gray-500 mb-1 block">Etapas que se crearán</label>
-              <ul className="text-sm text-gray-600 space-y-1">
-                {TIPOS.find(t => t.id === form.tipo)?.etapas.map((e, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-xs">{i + 1}</span>
-                    {e}
-                  </li>
+              <label className="text-xs text-gray-500 mb-2 block">Etapas y documentos requeridos</label>
+              <div className="space-y-3">
+                {etapasForm.map((etapa, i) => (
+                  <div key={i} className="border border-gray-100 rounded-lg p-3 space-y-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center text-xs font-medium flex-shrink-0">{i + 1}</span>
+                      <span className="text-sm font-medium text-gray-800">{etapa.nombre}</span>
+                    </div>
+                    <div className="ml-7 space-y-1">
+                      {etapa.docs.length === 0 && (
+                        <p className="text-xs text-gray-400">Sin documentos requeridos</p>
+                      )}
+                      {etapa.docs.map((doc, j) => (
+                        <div key={j} className="flex items-center gap-2">
+                          <span className="text-xs text-gray-600 flex-1">• {doc}</span>
+                          <button onClick={() => removeDocFromEtapa(i, j)}
+                            className="text-gray-300 hover:text-red-500 text-xs transition">✕</button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2 pt-1">
+                        <input type="text" value={docInputs[i] || ''}
+                          onChange={e => setDocInputs(prev => prev.map((v, idx) => idx === i ? e.target.value : v))}
+                          onKeyDown={e => e.key === 'Enter' && addDocToEtapa(i)}
+                          placeholder="Agregar documento..."
+                          className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500" />
+                        <button onClick={() => addDocToEtapa(i)}
+                          className="text-xs bg-gray-100 hover:bg-gray-200 rounded px-2 py-1 transition">+</button>
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
+
             <div className="flex gap-2 pt-1">
               <button onClick={crearProceso} disabled={guardando}
                 className="bg-violet-600 text-white rounded-lg px-4 py-2 text-sm font-medium hover:bg-violet-700 disabled:opacity-50">
@@ -217,22 +338,57 @@ export default function ProcesosPage() {
               {/* Etapas */}
               <div className="space-y-2">
                 {p.etapas.map(e => (
-                  <div key={e.id} className="flex items-center gap-3">
-                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${
-                      e.estado === 'completado' ? 'bg-green-500 text-white' :
-                      e.orden === p.etapa_actual ? 'bg-violet-600 text-white' :
-                      'bg-gray-100 text-gray-400'
-                    }`}>
-                      {e.estado === 'completado' ? '✓' : e.orden}
+                  <div key={e.id} className="space-y-1">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${
+                        e.estado === 'completado' ? 'bg-green-500 text-white' :
+                        e.orden === p.etapa_actual ? 'bg-violet-600 text-white' :
+                        'bg-gray-100 text-gray-400'
+                      }`}>
+                        {e.estado === 'completado' ? '✓' : e.orden}
+                      </div>
+                      <div className="flex-1">
+                        <p className={`text-sm ${e.estado === 'completado' ? 'text-gray-400 line-through' : e.orden === p.etapa_actual ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
+                          {e.nombre}
+                        </p>
+                        {e.fecha_completado && (
+                          <p className="text-xs text-gray-400">{formatFecha(e.fecha_completado)}</p>
+                        )}
+                      </div>
+                      <button onClick={() => editandoDocs === e.id ? setEditandoDocs(null) : abrirEditDocs(e)}
+                        className="text-xs text-gray-400 hover:text-violet-600 transition flex-shrink-0">
+                        {editandoDocs === e.id ? 'Cerrar' : `📎 ${e.documentos_requeridos?.length || 0}`}
+                      </button>
                     </div>
-                    <div className="flex-1">
-                      <p className={`text-sm ${e.estado === 'completado' ? 'text-gray-400 line-through' : e.orden === p.etapa_actual ? 'text-gray-900 font-medium' : 'text-gray-500'}`}>
-                        {e.nombre}
-                      </p>
-                      {e.fecha_completado && (
-                        <p className="text-xs text-gray-400">{formatFecha(e.fecha_completado)}</p>
-                      )}
-                    </div>
+
+                    {editandoDocs === e.id && (
+                      <div className="ml-8 bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Documentos requeridos</p>
+                        {docsEdit.length === 0 && (
+                          <p className="text-xs text-gray-400">Sin documentos requeridos</p>
+                        )}
+                        {docsEdit.map((doc, i) => (
+                          <div key={i} className="flex items-center gap-2">
+                            <span className="text-xs text-gray-700 flex-1">• {doc}</span>
+                            <button onClick={() => setDocsEdit(d => d.filter((_, j) => j !== i))}
+                              className="text-gray-300 hover:text-red-500 text-xs transition">✕</button>
+                          </div>
+                        ))}
+                        <div className="flex gap-2 pt-1">
+                          <input type="text" value={nuevoDoc}
+                            onChange={ev => setNuevoDoc(ev.target.value)}
+                            onKeyDown={ev => { if (ev.key === 'Enter' && nuevoDoc.trim()) { setDocsEdit(d => [...d, nuevoDoc.trim()]); setNuevoDoc('') } }}
+                            placeholder="Agregar documento..."
+                            className="flex-1 border border-gray-200 rounded px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-violet-500" />
+                          <button onClick={() => { if (nuevoDoc.trim()) { setDocsEdit(d => [...d, nuevoDoc.trim()]); setNuevoDoc('') } }}
+                            className="text-xs bg-gray-200 hover:bg-gray-300 rounded px-2 py-1 transition">+</button>
+                        </div>
+                        <button onClick={() => guardarDocs(p.id, e.id)} disabled={guardandoDocs}
+                          className="w-full text-xs bg-violet-600 text-white rounded px-2 py-1.5 hover:bg-violet-700 disabled:opacity-50 transition">
+                          {guardandoDocs ? 'Guardando...' : 'Guardar documentos'}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

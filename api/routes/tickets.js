@@ -50,13 +50,22 @@ router.patch('/:id/estado', async (req, res) => {
   if (!rows[0]) return res.status(404).json({ error: 'Ticket no encontrado' })
 
   const ticket = rows[0]
-  if (estado === 'aprobado' && ticket.telefono) {
-    notifyBot('/internal/start-onboarding', {
-      telefono: ticket.telefono,
-      nombre: ticket.nombre || 'Cliente',
-      servicio_consultado: ticket.servicio_consultado,
-    })
-    console.log(`[api] Onboarding disparado para ${ticket.telefono}`)
+  if (ticket.telefono) {
+    if (estado === 'aprobado') {
+      notifyBot('/internal/start-onboarding', {
+        telefono: ticket.telefono,
+        nombre: ticket.nombre || 'Cliente',
+        servicio_consultado: ticket.servicio_consultado,
+      })
+      console.log(`[api] Onboarding disparado para ${ticket.telefono}`)
+    } else if (estado === 'rechazado') {
+      notifyBot('/internal/notify-rejection', {
+        telefono: ticket.telefono,
+        nombre: ticket.nombre || 'Cliente',
+        servicio_consultado: ticket.servicio_consultado,
+      })
+      console.log(`[api] Notificación rechazo enviada a ${ticket.telefono}`)
+    }
   }
 
   res.json(ticket)

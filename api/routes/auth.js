@@ -17,15 +17,24 @@ router.post('/login', async (req, res) => {
       user = rows[0]
       rol  = 'contador'
     } else if (rut) {
-      const { rows } = await query('SELECT * FROM clientes WHERE rut = $1 AND tipo = $2', [rut, 'empresa'])
+      const rutNorm = rut.replace(/\./g, '').replace(/-/g, '').toLowerCase()
+      const { rows } = await query(
+        `SELECT * FROM clientes WHERE LOWER(REPLACE(REPLACE(rut,'.',''),'-','')) = $1`,
+        [rutNorm]
+      )
       user = rows[0]
       rol  = 'empresa'
     }
 
     if (!user) return res.status(401).json({ error: 'Credenciales inválidas' })
 
-    const hash = rol === 'contador' ? user.password_hash : user.password_hash
-    const valid = await bcrypt.compare(password, hash)
+    let valid = false
+    if (user.password_hash) {
+      valid = await bcrypt.compare(password, user.password_hash)
+    } else if (rol === 'empresa') {
+      // Sin contraseña configurada → últimos 4 dígitos del teléfono (demo)
+      valid = password === (user.telefono || '').slice(-4)
+    }
     if (!valid) return res.status(401).json({ error: 'Credenciales inválidas' })
 
     const token = jwt.sign(

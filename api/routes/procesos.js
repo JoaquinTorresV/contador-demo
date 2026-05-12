@@ -1,7 +1,8 @@
-const router    = require('express').Router()
-const http      = require('http')
-const auth      = require('../middleware/auth')
-const { query } = require('../../db/connection')
+const router      = require('express').Router()
+const http        = require('http')
+const auth        = require('../middleware/auth')
+const { query }   = require('../../db/connection')
+const docDefaults = require('../../config/document-requirements.json')
 
 function notifyBot(path, payload) {
   const body    = JSON.stringify(payload)
@@ -55,13 +56,35 @@ router.post('/', async (req, res) => {
   )
   const proceso = procesoRes.rows[0]
 
+  const defaults = docDefaults[tipo] || {}
+  const primeraEtapaDocs = []
+
   if (etapas.length) {
     for (let i = 0; i < etapas.length; i++) {
+      const etapa = etapas[i]
+      const nombreEtapa    = typeof etapa === 'string' ? etapa : etapa.nombre
+      const docsRequeridos = typeof etapa === 'object' && Array.isArray(etapa.docs)
+        ? etapa.docs
+        : (defaults[nombreEtapa] || [])
+      if (i === 0) primeraEtapaDocs.push(...docsRequeridos)
       await query(
-        'INSERT INTO etapas (proceso_id, nombre, orden) VALUES ($1, $2, $3)',
-        [proceso.id, etapas[i], i + 1]
+        'INSERT INTO etapas (proceso_id, nombre, orden, documentos_requeridos) VALUES ($1, $2, $3, $4)',
+        [proceso.id, nombreEtapa, i + 1, JSON.stringify(docsRequeridos)]
       )
     }
+  }
+
+  const { rows: [cliente] } = await query(
+    'SELECT nombre, telefono FROM clientes WHERE id = $1', [cliente_id]
+  )
+  if (cliente?.telefono) {
+    notifyBot('/internal/notify-proceso-inicio', {
+      telefono:       cliente.telefono,
+      nombre:         cliente.nombre,
+      tipo_proceso:   tipo,
+      primera_etapa:  etapas[0] || null,
+      docs_requeridos: primeraEtapaDocs,
+    })
   }
 
   res.status(201).json(proceso)
@@ -101,15 +124,28 @@ router.patch('/:id/avanzar', async (req, res) => {
   )
   if (cliente?.telefono) {
     notifyBot('/internal/notify-etapa', {
-      telefono:          cliente.telefono,
-      nombre:            cliente.nombre,
-      tipo_proceso:      proceso.tipo,
-      etapa_completada:  etapaActual?.nombre || `Etapa ${proceso.etapa_actual}`,
-      siguiente_etapa:   etapaSiguiente?.nombre || null,
+      telefono:           cliente.telefono,
+      nombre:             cliente.nombre,
+      tipo_proceso:       proceso.tipo,
+      etapa_completada:   etapaActual?.nombre || `Etapa ${proceso.etapa_actual}`,
+      siguiente_etapa:    etapaSiguiente?.nombre || null,
+      docs_siguiente:     etapaSiguiente?.documentos_requeridos || [],
       proceso_completado: esUltima,
     })
   }
 
+  res.json(rows[0])
+})
+
+// PATCH /api/procesos/:id/etapas/:etapa_id/documentos — editar docs requeridos
+router.patch('/:id/etapas/:etapa_id/documentos', async (req, res) => {
+  const { documentos_requeridos } = req.body
+  if (!Array.isArray(documentos_requeridos)) return res.status(400).json({ error: 'documentos_requeridos debe ser un array' })
+  const { rows } = await query(
+    'UPDATE etapas SET documentos_requeridos = $1 WHERE id = $2 AND proceso_id = $3 RETURNING *',
+    [JSON.stringify(documentos_requeridos), req.params.etapa_id, req.params.id]
+  )
+  if (!rows[0]) return res.status(404).json({ error: 'Etapa no encontrada' })
   res.json(rows[0])
 })
 

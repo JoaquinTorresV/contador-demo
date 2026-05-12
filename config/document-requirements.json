@@ -1,0 +1,27 @@
+{
+  "inicio_actividades": {
+    "Revisión de documentos": ["Cédula de identidad (ambos lados)", "Comprobante de domicilio"],
+    "Formulario SII": [],
+    "Resolución y certificado": []
+  },
+  "declaracion_renta": {
+    "Recopilación de información": ["Certificado de remuneraciones del empleador", "Resumen previsional AFP", "Resumen ISAPRE o FONASA"],
+    "Elaboración F22": [],
+    "Presentación SII": []
+  },
+  "declaracion_iva": {
+    "Recopilación de documentos": ["Facturas de ventas del mes", "Facturas de compras del mes", "Boletas emitidas del período"],
+    "Elaboración F29": [],
+    "Presentación SII": []
+  },
+  "contabilidad_completa": {
+    "Libros contables": ["Facturas de ventas", "Facturas de compras", "Extractos bancarios del mes"],
+    "Declaraciones mensuales": [],
+    "Informe financiero": []
+  },
+  "asesoria_tributaria": {
+    "Análisis del caso": ["Documentos relacionados al caso", "Notificaciones del SII (si aplica)"],
+    "Elaboración informe": [],
+    "Presentación al cliente": []
+  }
+}

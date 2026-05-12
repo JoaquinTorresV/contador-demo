@@ -19,7 +19,7 @@ async function manejar(sock, msg, telefono, texto, session, sessions) {
 
   // Recolección de datos en curso
   if (ticketSessions[telefono]) {
-    return await continuarRecoleccionTicket(sock, jid, telefono, texto)
+    return await continuarRecoleccionTicket(sock, jid, telefono, texto, session)
   }
 
   if (!session.history) session.history = []
@@ -33,11 +33,13 @@ Servicios disponibles:
 ${servicesContext}
 
 Reglas estrictas:
-- Si el cliente saluda por primera vez, preséntate brevemente y lista los servicios.
-- Si ya hay conversación, continúa sin presentarte de nuevo.
+- Si el cliente saluda sin preguntar algo concreto, responde con un saludo breve y pregunta en qué puedes ayudarle. NO listes todos los servicios automáticamente.
+- Lista los servicios solo si el cliente lo pide explícitamente o dice que no sabe qué necesita.
+- Si ya hay conversación previa, continúa sin presentarte de nuevo.
 - NUNCA inventes teléfonos, correos ni contactos.
+- Responde SIEMPRE preguntas sobre documentos, precios, plazos antes de intentar cerrar la venta.
 - Cuando el cliente confirme que QUIERE CONTRATAR un servicio específico, responde ÚNICAMENTE con: INICIO_TICKET:[id del servicio]. Ejemplo: INICIO_TICKET:declaracion_renta
-- Para servicios de precio variable (contabilidad_completa, asesoria_tributaria), cuando muestren interés, responde INICIO_TICKET:[id] igualmente.
+- Para servicios de precio variable (contabilidad_completa, asesoria_tributaria), cuando muestren interés claro, responde INICIO_TICKET:[id] igualmente.
 - Solo texto plano, sin markdown.`
 
   session.history.push({ role: 'user', content: texto })
@@ -51,6 +53,7 @@ Reglas estrictas:
     ticketSessions[telefono] = {
       paso: 'nombre',
       data: { telefono, servicio_consultado: servicioId, esVariable },
+      history: [...session.history],
     }
     await sock.sendMessage(jid, { text: '¡Perfecto! Para registrar tu consulta, ¿cuál es tu nombre?' })
     return
@@ -59,10 +62,31 @@ Reglas estrictas:
   await sock.sendMessage(jid, { text: respuesta })
 }
 
-async function continuarRecoleccionTicket(sock, jid, telefono, texto) {
+function esConsulta(texto) {
+  if (texto.includes('?')) return true
+  const palabras = texto.trim().split(/\s+/)
+  if (palabras.length > 6) return true
+  const iniciosConsulta = ['que', 'qué', 'cuanto', 'cuánto', 'como', 'cómo', 'cuales', 'cuáles', 'cuando', 'cuándo', 'donde', 'dónde', 'necesito', 'quiero saber', 'puedo', 'hay']
+  const primeraPalabra = palabras[0].toLowerCase()
+  return iniciosConsulta.includes(primeraPalabra)
+}
+
+async function continuarRecoleccionTicket(sock, jid, telefono, texto, session) {
   const ts = ticketSessions[telefono]
 
   if (ts.paso === 'nombre') {
+    // Si el usuario hace una pregunta en vez de dar su nombre, responder y volver a pedir
+    if (esConsulta(texto)) {
+      const servicio = services.services.find(s => s.id === ts.data.servicio_consultado)
+      const systemCtx = `El cliente está a punto de registrar una consulta para "${servicio?.nombre || ts.data.servicio_consultado}". Responde brevemente su pregunta. Al final de tu respuesta, pídele su nombre para completar el registro. Solo texto plano, sin markdown.`
+      if (!ts.history) ts.history = []
+      ts.history.push({ role: 'user', content: texto })
+      const respuesta = await chat(ts.history, { noTools: true, systemPrompt: systemCtx })
+      ts.history.push({ role: 'assistant', content: respuesta })
+      await sock.sendMessage(jid, { text: respuesta })
+      return
+    }
+
     ts.data.nombre = texto
     ts.paso = ts.data.esVariable ? 'necesidad' : 'completado'
 

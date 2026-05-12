@@ -1,14 +1,9 @@
-const { query }  = require('../../db/connection')
-const services   = require('../../config/services.json')
+const { query } = require('../../db/connection')
 let onboardingConfig
 
 function getConfig() {
   if (!onboardingConfig) onboardingConfig = require('../../config/onboarding.json')
   return onboardingConfig
-}
-
-function getServiceNames() {
-  return services.services.map((s, i) => `${i + 1}. ${s.nombre}`).join('\n')
 }
 
 function evaluarCondicion(condicion, data) {
@@ -17,7 +12,6 @@ function evaluarCondicion(condicion, data) {
 }
 
 function getPasoActual(steps, stepIndex, data) {
-  // Avanzar saltando pasos con condición no cumplida
   while (stepIndex < steps.length && !evaluarCondicion(steps[stepIndex].condicion, data)) {
     stepIndex++
   }
@@ -29,29 +23,26 @@ async function manejar(sock, msg, telefono, texto, session, sessions, cliente = 
   const config = getConfig()
   const steps  = config.steps
 
-  // Inicio de onboarding
+  // Inicio de onboarding manual (no desde ticket)
   if (!session.flow) {
     sessions[telefono] = { flow: 'onboarding', step: 0, data: {} }
-    const step = steps[0]
-    await sock.sendMessage(jid, { text: `Para comenzar necesito algunos datos.\n\n${step.pregunta}` })
+    await sock.sendMessage(jid, { text: `Para comenzar necesito algunos datos.\n\n${steps[0].pregunta}` })
     return
   }
 
-  const data      = session.data
-  let stepIndex   = session.step
+  const data       = session.data
+  let stepIndex    = session.step
   const stepActual = steps[stepIndex]
 
-  // Validación básica
   if (stepActual.requerido && !texto) {
     await sock.sendMessage(jid, { text: 'Por favor responde la pregunta para continuar.' })
     return
   }
 
   if (stepActual.tipo === 'rut') {
-    // Validación básica de formato RUT chileno
     const rutLimpio = texto.replace(/\./g, '').replace(/-/g, '').toLowerCase()
     if (rutLimpio.length < 7) {
-      await sock.sendMessage(jid, { text: 'El RUT ingresado no parece válido. Ingrésalo así: 12.345.678-9' })
+      await sock.sendMessage(jid, { text: 'El RUT no parece válido. Ingrésalo así: 12.345.678-9' })
       return
     }
   }
@@ -65,70 +56,59 @@ async function manejar(sock, msg, telefono, texto, session, sessions, cliente = 
       return
     }
     data[stepActual.id] = seleccion
-  } else if (stepActual.tipo === 'opciones_servicios') {
-    const idx = parseInt(texto) - 1
-    if (isNaN(idx) || !services.services[idx]) {
-      await sock.sendMessage(jid, { text: `Elige un número:\n${getServiceNames()}` })
-      return
-    }
-    data[stepActual.id] = services.services[idx].id
   } else {
     data[stepActual.id] = texto
   }
 
-  // Avanzar al siguiente paso válido
   stepIndex++
   stepIndex = getPasoActual(steps, stepIndex, data)
   sessions[telefono].step = stepIndex
   sessions[telefono].data = data
 
-  // Onboarding completado
   if (stepIndex >= steps.length) {
     await completarOnboarding(sock, jid, telefono, data, sessions)
     return
   }
 
-  // Siguiente pregunta
   const siguiente = steps[stepIndex]
   let pregunta = siguiente.pregunta
-
   if (siguiente.tipo === 'opciones') {
     const lista = siguiente.opciones.map((o, i) => `${i + 1}. ${o}`).join('\n')
     pregunta += `\n\n${lista}`
-  }
-
-  if (siguiente.tipo === 'opciones_servicios') {
-    pregunta += `\n\n${getServiceNames()}`
   }
 
   await sock.sendMessage(jid, { text: pregunta })
 }
 
 async function completarOnboarding(sock, jid, telefono, data, sessions) {
-  const tipo         = data.es_empresa === 'Para una empresa' ? 'empresa' : 'individual'
+  const tipo          = data.es_empresa === 'Para una empresa' ? 'empresa' : 'individual'
   const nombreEmpresa = data.nombre_empresa || null
+  const emailVal      = (data.email || '').toLowerCase() === 'no' ? null : (data.email || null)
 
   await query(
-    `INSERT INTO clientes (telefono, nombre, rut, email, tipo, nombre_empresa, modulos_activos)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+    `INSERT INTO clientes (telefono, nombre, rut, email, tipo, nombre_empresa, bot_activo, modulos_activos)
+     VALUES ($1, $2, $3, $4, $5, $6, false, $7)
      ON CONFLICT (telefono) DO UPDATE
-     SET nombre = $2, rut = $3, email = $4, tipo = $5, nombre_empresa = $6`,
+     SET nombre=$2, rut=$3, email=$4, tipo=$5, nombre_empresa=$6, bot_activo=false`,
     [
       telefono,
       data.nombre,
       data.rut || null,
-      data.email || null,
+      emailVal,
       tipo,
       nombreEmpresa,
-      JSON.stringify({ preventa: true, onboarding: true, consulta_proceso: true, notificaciones: true }),
+      JSON.stringify({ preventa: false, onboarding: false, consulta_proceso: false, notificaciones: true }),
     ]
   )
 
   delete sessions[telefono]
 
+  const studioName = process.env.STUDIO_NAME || 'el estudio'
   await sock.sendMessage(jid, {
-    text: `¡Listo ${data.nombre}! 🎉 Tus datos han sido registrados. Pronto el equipo del estudio se pondrá en contacto contigo para coordinar tu trámite de ${data.servicio || 'tu solicitud'}.`,
+    text: `¡Listo ${data.nombre}! ✓ Tus datos han sido registrados.\n\nEl equipo de ${studioName} comenzará a trabajar en tu solicitud. Te notificaremos cuando haya avances.\n\nMétodo de pago registrado: ${data.pago_metodo || 'A convenir'}.\n\nCuando quieras consultar el estado de tu trámite, escribe aquí y te informamos.`,
   })
+
+  console.log(`[bot] Onboarding completado: ${telefono} (${data.nombre}) — bot desactivado`)
 }
 
 module.exports = { manejar }

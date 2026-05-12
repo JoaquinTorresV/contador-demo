@@ -1,6 +1,20 @@
 const router    = require('express').Router()
+const http      = require('http')
 const auth      = require('../middleware/auth')
 const { query } = require('../../db/connection')
+
+function notifyBot(path, payload) {
+  const body    = JSON.stringify(payload)
+  const port    = process.env.BOT_INTERNAL_PORT || 3004
+  const options = {
+    hostname: '127.0.0.1', port, path, method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+  }
+  const req = http.request(options)
+  req.on('error', err => console.error('[api] Error notificando bot:', err.message))
+  req.write(body)
+  req.end()
+}
 
 router.use(auth)
 
@@ -51,6 +65,72 @@ router.post('/', async (req, res) => {
   }
 
   res.status(201).json(proceso)
+})
+
+// PATCH /api/procesos/:id/avanzar — marca etapa actual como completada y avanza
+router.patch('/:id/avanzar', async (req, res) => {
+  const { rows: [proceso] } = await query('SELECT * FROM procesos WHERE id = $1', [req.params.id])
+  if (!proceso) return res.status(404).json({ error: 'Proceso no encontrado' })
+  if (proceso.estado === 'completado') return res.status(400).json({ error: 'Proceso ya completado' })
+
+  // Obtener nombre de etapa actual y la siguiente
+  const { rows: etapas } = await query(
+    'SELECT * FROM etapas WHERE proceso_id = $1 ORDER BY orden', [proceso.id]
+  )
+  const etapaActual   = etapas.find(e => e.orden === proceso.etapa_actual)
+  const etapaSiguiente = etapas.find(e => e.orden === proceso.etapa_actual + 1)
+
+  await query(
+    `UPDATE etapas SET estado = 'completado', fecha_completado = NOW()
+     WHERE proceso_id = $1 AND orden = $2`,
+    [proceso.id, proceso.etapa_actual]
+  )
+
+  const nuevaEtapa = proceso.etapa_actual + 1
+  const esUltima   = nuevaEtapa > proceso.total_etapas
+
+  const { rows } = await query(
+    `UPDATE procesos SET etapa_actual = $1, estado = $2 ${esUltima ? ', fecha_cierre = NOW()' : ''}
+     WHERE id = $3 RETURNING *`,
+    [nuevaEtapa, esUltima ? 'completado' : 'en_progreso', proceso.id]
+  )
+
+  // Notificar al cliente por WhatsApp
+  const { rows: [cliente] } = await query(
+    'SELECT nombre, telefono FROM clientes WHERE id = $1', [proceso.cliente_id]
+  )
+  if (cliente?.telefono) {
+    notifyBot('/internal/notify-etapa', {
+      telefono:          cliente.telefono,
+      nombre:            cliente.nombre,
+      tipo_proceso:      proceso.tipo,
+      etapa_completada:  etapaActual?.nombre || `Etapa ${proceso.etapa_actual}`,
+      siguiente_etapa:   etapaSiguiente?.nombre || null,
+      proceso_completado: esUltima,
+    })
+  }
+
+  res.json(rows[0])
+})
+
+// POST /api/procesos/:id/etapas — agregar etapa a proceso existente
+router.post('/:id/etapas', async (req, res) => {
+  const { nombre } = req.body
+  if (!nombre) return res.status(400).json({ error: 'nombre requerido' })
+
+  const { rows: [proceso] } = await query('SELECT * FROM procesos WHERE id = $1', [req.params.id])
+  if (!proceso) return res.status(404).json({ error: 'Proceso no encontrado' })
+
+  const { rows: etapas } = await query(
+    'SELECT MAX(orden) as max_orden FROM etapas WHERE proceso_id = $1', [proceso.id]
+  )
+  const orden = (etapas[0].max_orden || 0) + 1
+
+  await query('INSERT INTO etapas (proceso_id, nombre, orden) VALUES ($1, $2, $3)', [proceso.id, nombre, orden])
+  await query('UPDATE procesos SET total_etapas = total_etapas + 1 WHERE id = $1', [proceso.id])
+
+  const { rows } = await query('SELECT * FROM procesos WHERE id = $1', [proceso.id])
+  res.status(201).json(rows[0])
 })
 
 // PATCH /api/procesos/:id/estado — avanzar etapa o cerrar proceso

@@ -28,10 +28,12 @@ No uses markdown, solo texto plano.`
 
 // chat — interfaz unificada para todos los providers
 // Maneja el loop de tool use automáticamente
+// context.systemPrompt → sobrescribe el prompt base
+// context.noTools      → deshabilita tools (para preventa, onboarding)
 async function chat(messages, context = {}) {
-  const provider   = getProvider()
-  const systemPrompt = buildSystemPrompt()
-  const toolDefs   = TOOLS.map(t => t.definition)
+  const provider     = getProvider()
+  const systemPrompt = context.systemPrompt || buildSystemPrompt()
+  const toolDefs     = context.noTools ? [] : TOOLS.map(t => t.definition)
 
   let currentMessages = [...messages]
   let iterations = 0

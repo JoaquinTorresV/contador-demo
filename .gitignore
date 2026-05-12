@@ -1,0 +1,9 @@
+node_modules/
+.env
+sessions/
+uploads/
+panel/node_modules/
+portal/node_modules/
+panel/.next/
+portal/.next/
+*.log

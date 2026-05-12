@@ -1,6 +1,7 @@
 require('dotenv').config()
 const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = require('@whiskeysockets/baileys')
 const { Boom } = require('@hapi/boom')
+const qrcode = require('qrcode-terminal')
 const path = require('path')
 const messageHandler = require('./handlers/message.handler')
 
@@ -13,16 +14,18 @@ async function connectToWhatsApp() {
   const sock = makeWASocket({
     version,
     auth: state,
-    printQRInTerminal: true,
     browser: ['contador-demo', 'Chrome', '1.0.0'],
     syncFullHistory: false,
   })
+
+  require('./state').setSock(sock)
 
   sock.ev.on('creds.update', saveCreds)
 
   sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
     if (qr) {
-      console.log('\n[bot] Escanea el QR con WhatsApp para conectar\n')
+      console.log('\n[bot] Escanea el QR con WhatsApp:\n')
+      qrcode.generate(qr, { small: true })
     }
 
     if (connection === 'close') {

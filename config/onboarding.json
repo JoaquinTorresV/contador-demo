@@ -4,8 +4,7 @@
       "id": "nombre",
       "pregunta": "¿Cuál es tu nombre completo?",
       "tipo": "texto",
-      "requerido": true,
-      "validacion": "min:2"
+      "requerido": true
     },
     {
       "id": "rut",
@@ -15,8 +14,8 @@
     },
     {
       "id": "email",
-      "pregunta": "¿Cuál es tu correo electrónico?",
-      "tipo": "email",
+      "pregunta": "¿Cuál es tu correo electrónico? (escribe \"no\" si prefieres omitirlo)",
+      "tipo": "texto",
       "requerido": false
     },
     {
@@ -34,9 +33,10 @@
       "condicion": { "campo": "es_empresa", "valor": "Para una empresa" }
     },
     {
-      "id": "servicio",
-      "pregunta": "¿Qué servicio necesitas?",
-      "tipo": "opciones_servicios",
+      "id": "pago_metodo",
+      "pregunta": "¿Cómo prefieres coordinar el pago?",
+      "tipo": "opciones",
+      "opciones": ["Transferencia bancaria", "Efectivo", "A convenir con el estudio"],
       "requerido": true
     }
   ]

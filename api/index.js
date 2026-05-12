@@ -5,8 +5,10 @@ const cors    = require('cors')
 const app = express()
 
 app.use(cors({ origin: [
-  process.env.PANEL_URL || 'http://localhost:3002',
+  process.env.PANEL_URL  || 'http://localhost:3002',
   process.env.PORTAL_URL || 'http://localhost:3003',
+  'http://localhost:3000',
+  'http://localhost:3001',
 ]}))
 app.use(express.json())
 
